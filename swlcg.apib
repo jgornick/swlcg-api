@@ -1,0 +1,353 @@
+HOST: https://api.swlcg.xyz
+FORMAT: 1A9
+
+# Star Wars: The Card Game LCG - API
+
+## Overview
+
+## Query parameters
+
+All routes support query parameters to refine responses
+
+- **[include](http://jsonapi.org/format/#fetching-relationships)**,
+  e.g. `GET /session?include=account.profile` to include properties of the
+  profile relationship
+- **[fields](http://jsonapi.org/format/#fetching-sparse-fieldsets)**,
+  e.g. `GET /session?fields[account]=username` to only return the username
+  of the account relationship
+- **[sort](http://jsonapi.org/format/#fetching-sorting)**,
+  e.g. `GET /accounts?sort=username` to sort all accounts ascending by name
+- **[page](http://jsonapi.org/format/#fetching-pagination)**,
+  e.g. `GET /accounts?page[number]=1&page[size]=10` to return only the first
+  10 accounts
+- **[filter](http://jsonapi.org/format/#fetching-filtering)**,
+  The `filter` is not defined by JSON API. Implementations must specify if how
+  the `filter` query parameter is supported.
+
+### Version
+
+By default, all requests receive the latest version of the API. We encourage you to explicitly request this version via the Accept header.
+
+```
+Accept: application/vnd.api+json;version=1
+```
+
+### Schema
+
+All API access is over HTTPS. All data is sent and received as JSON while using the [JSON API](http://jsonapi.org/) media type to represent resources states and affordances.
+
+Blank fields are included as ```null``` instead of being omitted.
+
+All timestamps are returned in ISO 8601 format: ```YYYY-MM-DDTHH:MM:SSZ```.
+
+#### Summary Representations
+
+When you fetch a list of resources, the response includes a subset of the attributes for that resource. This is the “summary” representation of the resource. Some attributes are computationally expensive for the API to provide. For performance reasons, the summary representation excludes those attributes. To obtain those attributes, fetch the “detailed” representation.
+
+#### Detailed Representations
+
+When you fetch an individual resource, the response typically includes all attributes for that resource. This is the “detailed” representation of the resource. Note that authorization sometimes influences the amount of detail included in the representation.
+
+The documentation provides an example response for each API method. The example response illustrates all attributes that are returned by that method.
+
+## Authentication
+
+The SWLCG API uses the [Client Credentials Grant Flow](http://tools.ietf.org/html/rfc6749#section-4.4) of the OAuth2 specification as the authentication mechanism.
+
+Every request requires an access token besides the request to generate a new access token. There are three ways to authenticate through the API:
+
+### OAuth2 Token (sent in a header)
+
+```
+$ curl -H "Authorization: Bearer ZTkxMWJkODEtYjUwYy00MzUyLWFhYzEtODI3NWNkMjY0OGFj" https://api.swlcg.xyz/cards
+```
+
+### OAuth2 Token (sent as a URL query parameter)
+
+```
+$ curl https://api.swlcg.xyz/cards?access_token=ZTkxMWJkODEtYjUwYy00MzUyLWFhYzEtODI3NWNkMjY0OGFj
+```
+
+### OAuth2 Token (sent as form encoded body parameter)
+
+```
+$ curl --data 'access_token=ZTkxMWJkODEtYjUwYy00MzUyLWFhYzEtODI3NWNkMjY0OGFj' https://api.swlcg.xyz/cards
+```
+
+For more information visit the [Authentication](#authentication) group.
+
+## Error States
+
+The common [HTTP Response Status Codes](https://github.com/for-GET/know-your-http-well/blob/master/status-codes.md) are returned with the [JSON API Error Objects](http://jsonapi.org/format/#errors) as the message body.
+
+## Collections
+
+Requests that return multiple items are considered to return a collection of resources. Most collection requests provide the ability to refine the results with the following optional features.
+
+### Filtering
+
+As described in the JSON API specification, the SWLCG API supports basic filtering on resources. More information can be found at the [JSON API Fetching - Filtering](http://jsonapi.org/format/#fetching-filtering) section of the specification.
+
+### Sorting
+
+As described in the JSON API specification, the SWLCG API supports basic sorting on resources. More information can be found at the [JSON API Fetching - Sorting](http://jsonapi.org/format/#fetching-sorting) section of the specification.
+
+### Pagination
+
+Requests that return multiple items will be paginated to 10 items by default. You can specify further pages with the ```?page``` parameter. For some resources, you can also set a custom page size up to 100 with the ```?per-page``` parameter. Note that for technical reasons not all endpoints respect the ```?per-page``` parameter.
+
+```
+$ curl 'https://api.swlcg.xyz/cards?page=2&per-page=100'
+```
+
+Note that page numbering is 1-based and that omitting the ```?page``` parameter will return the first page.
+
+#### Link Header
+
+The pagination info is included in the Link header and X-Pagination-* headers. It is important to follow these Link header values instead of constructing your own URLs.
+
+```
+Link:   <https://api.swlcg.xyz/cards?page=3&per-page=10>; rel="next",
+        <https://api.swlcg.xyz/cards?page=10&per-page=10>; rel="last",
+        <https://api.swlcg.xyz/cards?page=2&per-page=10>; rel="prev",
+        <https://api.swlcg.xyz/cards?page=1&per-page=10>; rel="first"
+X-Pagination-Total-Count: 109
+X-Pagination-Total-Pages: 10
+X-Pagination-Current-Page: 3
+```
+
+> Linebreak is included for readability.
+
+The possible ```rel``` values are:
+
+| Name  | Description                                               |
+| ----- | --------------------------------------------------------- |
+| next  | Shows the URL of the immediate next page of results.      |
+| last  | Shows the URL of the last page of results.                |
+| first | Shows the URL of the first page of results.               |
+| prev  | Shows the URL of the immediate previous page of results.  |
+
+# Group Authentication
+
+This is an authenticated API which uses [Client Credentials Grant Flow](http://tools.ietf.org/html/rfc6749#section-4.4) of the OAuth2 specification as the authentication mechanism.
+
+```
++---------+                                  +---------------+
+|         |                                  |               |
+|         |>--(A)- Client Authentication --->| Authorization |
+| Client  |                                  |     Server    |
+|         |<--(B)---- Access Token ---------<|               |
+|         |                                  |               |
++---------+                                  +---------------+
+```
+
+To use this API:
+
+* An application encodes its consumer key and secret into a specially encoded set of credentials.
+* An application makes a request to the [POST /auth/token](#authentication-access-token-post) endpoint to exchange these credentials for an access token.
+* When accessing the REST API, the application uses the access token to authenticate.
+
+## Tokens Are Passwords
+
+Keep in mind that the consumer key & secret, bearer token credentials, and the bearer token itself grant access to make requests on behalf of an application. These values should be considered as sensitive as passwords and must not be shared or distributed to untrusted parties.
+
+## SSL Absolutely Required
+
+This manner of authentication is only secure if SSL is used. Therefore, all requests (both to obtain and use the tokens) must use HTTPS endpoints, which is also a requirement of using the API.
+
+## Tokens Expire
+
+Generated tokens will expire after **20 minutes** from the last request which used the access token. Once a token is expired, you must generate a new token in order to make requests.
+
+## Issuing Access Tokens
+
+#### Step 1: Encode consumer key and secret
+
+The steps to encode an application's consumer key and secret into a set of credentials to obtain a bearer token are:
+
+* URL encode the consumer key and the consumer secret according to RFC 1738. Note that at the time of writing, this will not actually change the consumer key and secret, but this step should still be performed in case the format of those values changes in the future.
+* Concatenate the encoded consumer key, a colon character ":", and the encoded consumer secret into a single string.
+* Base64 encode the string from the previous step.
+
+Below are example values showing the result of this algorithm. Note that the consumer secret used in this page has been disabled and will not work for real requests.
+
+|                                          |                          |
+| ---------------------------------------- | ------------------------ |
+| Consumer key                             | luke                     |
+| Consumer secret                          | vaderismydad             |
+| Bearer token credentials                 | luke:vaderismydad        |
+| Base64 encoded bearer token credentials  | amdvcm5pY2s6bXlzZWNyZXQK |
+
+#### Step 2: Obtain a bearer token
+
+The value calculated in step 1 must be exchanged for a bearer token by issuing a request to ```POST /auth/token```:
+
+* The request must be a HTTP POST request.
+* The request must include an ```Authorization``` header with the value of ```Basic <base64 encoded value from step 1>```.
+* The request must include a ```Content-Type``` header with the value of ```application/x-www-form-urlencoded;charset=UTF-8```.
+* The body of the request must be ```grant_type=client_credentials```.
+
+Example request:
+
+```
+POST /auth/token HTTP/1.1
+Host: swlcg.xyz
+User-Agent: Millenium Falcon
+Authorization: Basic amdvcm5pY2s6bXlzZWNyZXQK
+Content-Type: application/x-www-form-urlencoded;charset=UTF-8
+
+grant_type=client_credentials
+```
+
+If the request was formatted correctly, the server will respond with a JSON-encoded payload:
+
+Example response:
+
+```
+HTTP/1.1 200 OK
+Status: 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "token_type": "bearer",
+    "access_token": "ZTkxMWJkODEtYjUwYy00MzUyLWFhYzEtODI3NWNkMjY0OGFj"
+}
+```
+
+Applications should verify that the value associated with the ```token_type``` key of the returned object is bearer. The value associated with the ```access_token``` key is the bearer token.
+
+> Note that one bearer token is valid for an application at a time. Issuing another request with the same credentials to ```/auth/token``` will return the same token until it is expired.
+
+#### Step 3: Authenticate API requests with the bearer token
+
+The bearer token may be used to issue requests to API endpoints. To use the bearer token, construct a normal HTTPS request and include an ```Authorization``` header with the value of ```Bearer <base64 bearer token value from step 2>```. Signing is not required.
+
+Example request:
+
+```
+GET /cards HTTP/1.1
+Authorization: Bearer ZTkxMWJkODEtYjUwYy00MzUyLWFhYzEtODI3NWNkMjY0OGFj
+```
+
+### Common error cases
+
+This section describes some common mistakes involved in the negotiation and use of bearer tokens. Be aware that not all possible error responses are covered here - be observant of unhandled error codes and responses!
+
+#### Invalid requests to obtain or revoke bearer tokens
+
+Attempts to:
+
+* Obtain a bearer token with an invalid request (for example, leaving out grant_type=client_credentials).
+* Obtain or revoke a bearer token with incorrect or expired app credentials.
+* Obtain a bearer token too frequently in a short period of time.
+
+Will result in:
+
+```
+HTTP/1.1 403 Forbidden
+```
+
+#### API request contains invalid bearer token
+
+Using an incorrect or expired bearer access token to make API requests will result in:
+
+```
+HTTP/1.1 401 Unauthorized
+```
+
+#### Bearer token used on endpoint when application and user don't have access
+
+Requesting an endpoint which requires a user context (such as /decks) with a bearer token will produce:
+
+```
+HTTP/1.1 403 Forbidden
+```
+
+## Access Token [/auth/token]
+
+### Grant Access Token [POST]
+
++ Request Generate Access Token
+
+    + Headers
+
+        Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+        Authorization: Basic amdvcm5pY2s6bXlzZWNyZXQK
+
+    + Body
+
+        grant_type=client_credentials
+
++ Response 200
+
+    + Headers
+
+        Content-Type: application/json; charset=UTF-8
+
+    + Body
+
+        {
+            "token_type": "bearer",
+            "access_token": "ZTkxMWJkODEtYjUwYy00MzUyLWFhYzEtODI3NWNkMjY0OGFj"
+        }
+
++ Response 403
+
+# Group Cards
+
+## Card [/cards/{card-number}]
+
++ Model
+
+    + Headers
+
+        Content-Type: application/vnd.api+json
+        Location: https://api.swlcg.xyz/cards/123
+
+    + Body
+
+        {
+        }
+
+## Cards Collection [/cards]
+
++ Model
+
+    + Headers
+
+        Content-Type: application/vnd.api+json
+        Link:   <https://api.swlcg.xyz/cards?page=3&per-page=10>; rel="next",
+                <https://api.swlcg.xyz/cards?page=10&per-page=10>; rel="last",
+                <https://api.swlcg.xyz/cards?page=2&per-page=10>; rel="prev",
+                <https://api.swlcg.xyz/cards?page=1&per-page=10>; rel="first"
+        X-Pagination-Total-Count: 109
+        X-Pagination-Total-Pages: 10
+        X-Pagination-Current-Page: 3
+
+    + Body
+
+        {
+        }
+
+### Get Cards [GET]
+
++ Request (application/vnd.api+json)
+
+    + Headers
+
+        Accept: application/vnd.api+json
+        Authorization: Bearer sessionid123
+
++ Response 200 (application/vnd.api+json)
+
+    [Cards Collection][]
+
++ Response 401 (application/vnd.api+json)
+
+        {
+            errors: [{
+                "status": "401",
+                "title": "Unauthorized",
+                "detail": "Invalid credentials"
+            }]
+        }

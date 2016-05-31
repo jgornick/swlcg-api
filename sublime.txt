@@ -1,0 +1,141 @@
+a - affiliation
+and - reserved for and
+b -
+c - cost
+ct - card type
+d - damage capacity
+e - edge priority
+eb - edge-engabled blast damage
+et - edge-engabled tactics
+eu - edge-engabled unit damage
+f - force icons
+g -
+h -
+i - scenarios
+is - reserved for is:
+j -
+k - keywords
+kc - keyword: pilot cost
+kd - keyword: protect descriptor
+l - traits
+lr - referenced traits
+m -
+n - card number
+nb - normal blast damage
+nt - normal tactics
+nu - normal unit damage
+o - objective set number
+or - reserved for or
+p -
+q -
+r - resource value
+s - side
+t - card text
+u -
+v -
+w -
+x -
+y -
+z -
+
+# Search by title by default
+twist of fate - contains (fulltext)
+!twist of fate - exact (case-insensitive)
+
+# Search by card text
+t:"deals unit damage"
+
+# Search by card number
+n:123
+
+# Search by objective set number
+o:123
+
+# Search by card type
+ct:f(ate)
+ct:u(nit)
+ct:e(vent)
+ct:a(ffiliation)
+ct:e(nhancement)
+ct:o(bjective)
+ct:m(ission)
+
+# Search by side
+s:l(ight)
+s:d(ark)
+
+# Search by affiliation
+a:j(edi) - Jedi
+a:r(ebel) - Rebel
+a:(s)m(ugglers) - Smugglers
+a:s(ith) - Sith
+a:n(avy) - Imperial Navy
+a:(s)c(um) - Scum
+a:(neutra)l - Neutral
+
+# Search by cost
+c=0
+c>0
+c<0
+c>=0
+c<=0
+c!=0
+
+# Search by damage capacity
+d=0
+d>0
+d<0
+d>=0
+d<=0
+d!=0
+
+# Search by force icons
+f=0
+f>0
+f<0
+f>=0
+f<=0
+f!=0
+
+# Search by resource value
+r=0
+r>0
+r<0
+r>=0
+r<=0
+r!=0
+
+# Search edge priority number
+e=0
+e>0
+e<0
+e>=0
+e<=0
+e!=0
+
+# Search by normal and edge-enabled combat icons
+nu - Normal Unit Damage
+nb - Normal Blast Damage
+nt - Normal Tactics
+eu - Edge-Engabled Unit Damage
+eb - Edge-Engabled Blast Damage
+et - Edge-Engabled Tactics
+
+# Search by traits
+l:droid
+
+# Search by referenced traits
+lr:droid
+
+# Search by keywords
+k:pilot
+
+# Search by keyword data
+k:pilot kc<=2 - Pilots that cost <= 2
+
+# Search by scenarios
+i:"deals damage"
+
+is:unique
+is:affiliation-locked
+is:objective-set-limited

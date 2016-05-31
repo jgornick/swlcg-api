@@ -1,0 +1,38 @@
+{
+  "name": "swlcg-api",
+  "version": "0.1.0",
+  "description": "Star Wars: The Card Game LCG Card Database API",
+  "main": "bin/server",
+  "scripts": {
+    "start": "bin/server",
+    "watch": "nodemon --watch src/ bin/server"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "async-p": "github:jgornick/async-p",
+    "babel": "^6.5.2",
+    "babel-core": "^6.9.0",
+    "babel-preset-node6": "^11.0.0",
+    "babel-register": "^6.9.0",
+    "body-parser": "^1.13.3",
+    "common-errors": "^0.5.1",
+    "config": "^1.15.0",
+    "cors": "^2.7.1",
+    "express": "^4.13.3",
+    "fount": "^0.2.0-3",
+    "glob": "^7.0.0",
+    "js-yaml": "^3.4.0",
+    "jsonapi-query-parser": "^1.2.1",
+    "jsonapi-serializer": "^3.2.1",
+    "knex": "^0.11.5",
+    "lodash": "^4.3.0",
+    "pg": "^4.5.5",
+    "when": "^3.7.3",
+    "winston": "^2.1.1"
+  },
+  "devDependencies": {
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "nodemon": "^1.9.2"
+  }
+}
