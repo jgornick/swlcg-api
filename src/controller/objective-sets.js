@@ -29,22 +29,27 @@ export default function(di) {
                             .groupBy('oc.objective_set_number'),
                         objectiveSetSql = db
                             .select(
-                                'mos.*',
-                                'oc.number'
+                                'oc.objective_set_number as id',
+                                'oc.objective_set_number',
+                                'mos.matched_cards'
                             )
                             .join('cards as oc', (join) => {
                                 join
                                     .on('oc.objective_set_number', '=', 'mos.objective_set_number')
                                     .andOn('oc.objective_set_sequence', 1)
                             }),
+                        objectiveSetMetricsSql = db
+                            .select('name', 'count', 'sum', 'average', 'min', 'max')
+                            .from('objective_set_metrics')
+                            .orderBy('name', 'asc'),
+                        objectiveSetCardTypeMetricsSql = db
+                            .select('type', 'name', 'count', 'sum', 'average', 'min', 'max')
+                            .from('objective_set_card_type_metrics')
+                            .orderBy('name', 'asc'),
                         cardsSql = db
-                            .select(
-                                db.raw(`concat_ws('-', objective_set_number, objective_set_sequence, number) as id`),
-                                'objective_set_number',
-                                'objective_set_sequence',
-                                'number'
-                            )
-                            .from('cards'),
+                            .select(db.raw(`concat_ws('-', objective_set_number, objective_set_sequence) as id`))
+                            .from('cards')
+                            .orderBy('objective_set_sequence', 'asc'),
                         objectiveSetSqlFields = [],
                         cardsSqlFields = [];
 
@@ -112,8 +117,45 @@ export default function(di) {
                             });
                         })
                         .then((results) => {
+                            return async.each(results, (objectiveSet) => {
+                                return objectiveSetMetricsSql.clone()
+                                    .where('objective_set_number', objectiveSet.objective_set_number)
+                                    .then((results) => {
+                                        results = _.map(results, (value) => {
+                                            value.average = +value.average;
+                                            value.name = _.camelCase(value.name);
+                                            return value;
+                                        });
+                                        objectiveSet.metrics = _.merge(objectiveSet.metrics || {}, { objective: results });
+                                        return objectiveSet;
+                                    });
+                            });
+                        })
+                        .then((results) => {
+                            return async.each(results, (objectiveSet) => {
+                                return objectiveSetCardTypeMetricsSql.clone()
+                                    .where('objective_set_number', objectiveSet.objective_set_number)
+                                    .then((results) => {
+                                        results = _.map(results, (value) => {
+                                            value.average = +value.average;
+                                            value.name = _.camelCase(value.name);
+                                            return value;
+                                        });
+                                        objectiveSet.metrics = _.merge(objectiveSet.metrics || {}, { type: results });
+                                        return objectiveSet;
+                                    });
+                            });
+                        })
+                        .then((results) => {
                             res.send(ObjectiveSetJsonApiSerializer.serialize(results, {
+                                attributes: [
+                                    ...objectiveSetSqlFields,
+                                    'metrics',
+                                    'matched_cards',
+                                    'cards'
+                                ],
                                 cards: {
+                                    attributes: cardsSqlFields,
                                     included: _.includes(query.include, 'cards')
                                 }
                             }));
@@ -129,20 +171,20 @@ export default function(di) {
                 (req, res) => {
                     let
                         objectiveSetSql = db
-                            .select(
-                                'objective_set_number',
-                                'number'
-                            )
+                            .select('objective_set_number as id')
                             .from('cards')
                             .where('objective_set_number', req.params.number)
                             .andWhere('objective_set_sequence', 1),
+                        objectiveSetMetricsSql = db
+                            .select('name', 'count', 'sum', 'average', 'min', 'max')
+                            .from('objective_set_metrics')
+                            .orderBy('name', 'asc'),
+                        objectiveSetCardTypeMetricsSql = db
+                            .select('type', 'name', 'count', 'sum', 'average', 'min', 'max')
+                            .from('objective_set_card_type_metrics')
+                            .orderBy('name', 'asc'),
                         cardsSql = db
-                            .select(
-                                db.raw(`concat_ws('-', objective_set_number, objective_set_sequence, number) as id`),
-                                'objective_set_number',
-                                'objective_set_sequence',
-                                'number'
-                            )
+                            .select(db.raw(`concat_ws('-', objective_set_number, objective_set_sequence) as id`))
                             .from('cards'),
                         objectiveSetSqlFields = [],
                         cardsSqlFields = [];
@@ -183,8 +225,44 @@ export default function(di) {
                             });
                         })
                         .then((results) => {
+                            return async.each(results, (objectiveSet) => {
+                                return objectiveSetMetricsSql.clone()
+                                    .where('objective_set_number', objectiveSet.objective_set_number)
+                                    .then((results) => {
+                                        results = _.map(results, (value) => {
+                                            value.average = +value.average;
+                                            value.name = _.camelCase(value.name);
+                                            return value;
+                                        });
+                                        objectiveSet.metrics = _.merge(objectiveSet.metrics || {}, { objective: results });
+                                        return objectiveSet;
+                                    });
+                            });
+                        })
+                        .then((results) => {
+                            return async.each(results, (objectiveSet) => {
+                                return objectiveSetCardTypeMetricsSql.clone()
+                                    .where('objective_set_number', objectiveSet.objective_set_number)
+                                    .then((results) => {
+                                        results = _.map(results, (value) => {
+                                            value.average = +value.average;
+                                            value.name = _.camelCase(value.name);
+                                            return value;
+                                        });
+                                        objectiveSet.metrics = _.merge(objectiveSet.metrics || {}, { type: results });
+                                        return objectiveSet;
+                                    });
+                            });
+                        })
+                        .then((results) => {
                             res.send(ObjectiveSetJsonApiSerializer.serialize(results, {
+                                attributes: [
+                                    ...objectiveSetSqlFields,
+                                    'metrics',
+                                    'cards'
+                                ],
                                 cards: {
+                                    attributes: cardsSqlFields,
                                     included: _.includes(query.include, 'cards')
                                 }
                             }));
@@ -200,12 +278,7 @@ export default function(di) {
                 (req, res) => {
                     let
                         cardsSql = db
-                            .select(
-                                db.raw(`concat_ws('-', objective_set_number, objective_set_sequence, number) as id`),
-                                'objective_set_number',
-                                'objective_set_sequence',
-                                'number'
-                            )
+                            .select('number as id')
                             .from('cards')
                             .where('objective_set_number', req.params.number)
                             .orderBy('objective_set_sequence', 'asc'),
@@ -254,48 +327,12 @@ export default function(di) {
 
                     cardsSql
                         .then((results) => {
-                            res.send(CardJsonApiSerializer.serialize(results));
-                        })
-                        .catch((error) => {
-                            res.status(500).send(error.message);
-                        });
-                }
-            );
-
-            router.get(
-                '/objective-sets/:number/cards/:sequence',
-                (req, res) => {
-                    let
-                        cardsSql = db
-                            .select(
-                                db.raw(`concat_ws('-', objective_set_number, objective_set_sequence, number) as id`),
-                                'objective_set_number',
-                                'objective_set_sequence',
-                                'number'
-                            )
-                            .from('cards')
-                            .where('objective_set_number', req.params.number)
-                            .andWhere('objective_set_sequence', req.params.sequence);
-                        cardsSqlFields = [];
-
-                    let parser = new JsonApiQueryParser();
-                    let query = parser.parseRequest(req.url).queryData;
-
-                    query.fields = _.mapKeys(query.fields, (value, key) => _.camelCase(key));
-
-                    if (_.size(_.result(query.fields, 'cards', {}))) {
-                        cardsSqlFields = _.map(query.fields.cards, _.snakeCase);
-                    }
-
-                    if (!cardsSqlFields.length) {
-                        cardsSqlFields = CARD_SQL_FIELDS;
-                    }
-
-                    cardsSql.select(cardsSqlFields);
-
-                    cardsSql
-                        .then((results) => {
-                            res.send(CardJsonApiSerializer.serialize(results));
+                            res.send(CardJsonApiSerializer.serialize(results, {
+                                topLevelLinks: {
+                                    self: `/objective-sets/${req.params.number}/cards`
+                                },
+                                attributes: cardsSqlFields
+                            }));
                         })
                         .catch((error) => {
                             res.status(500).send(error.message);

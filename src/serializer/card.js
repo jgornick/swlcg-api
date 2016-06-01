@@ -6,34 +6,51 @@ import { SQL_FIELDS as CARD_SQL_FIELDS } from '../struct/card';
 const JSON_API_TYPE = 'cards';
 
 const SERIALIZER_DEFAULT_OPTIONS = {
-    topLevelLinks: { self: '/cards' },
-    dataLinks: {
-        'self': (record) => `/cards/${record.number}`
-    },
-
     keyForAttribute: (attribute) => _.camelCase(attribute),
     typeForAttribute: (attribute) => _.kebabCase(attribute),
 
+    topLevelLinks: {
+        self: (record) => `/cards`
+    },
+
+    dataLinks: {
+        self: (record) => `/cards/${record.number}`
+    },
+
     attributes: [
-        ...CARD_SQL_FIELDS
-    ]
+        ...CARD_SQL_FIELDS,
+        'objectiveSets'
+    ],
+
+    objectiveSets: {
+        ref: 'id',
+        attributes: OBJECTIVE_SET_SQL_FIELDS,
+        included: false,
+        includedLinks: {
+            self: (record, current) => `/objective-sets/${current.objective_set_number}`
+        },
+        relationshipLinks: {
+            self: (record, current, parent) => `/cards/${record.number}/relationships/objective-sets`,
+            related: (record, current, parent) => `/cards/${record.number}/objective-sets`
+        }
+    }
 };
 
 export default class CardJsonApiSerializer {
-    static serialize(cards, options = {}) {
-        cards = _.map(cards, (card) => {
-            if (card.id == null) {
-                card.id = card.number;
-            }
-
-            return card;
-        });
-
+    static serialize(data, options = {}) {
         let serializer = new Serializer(
             JSON_API_TYPE,
-            _.merge(SERIALIZER_DEFAULT_OPTIONS, options)
+            _.mergeWith(
+                SERIALIZER_DEFAULT_OPTIONS,
+                options,
+                (objValue, srcValue) => {
+                    if (_.isArray(objValue)) {
+                        return srcValue;
+                    }
+                }
+            )
         );
 
-        return serializer.serialize(cards);
+        return serializer.serialize(data);
     }
 };

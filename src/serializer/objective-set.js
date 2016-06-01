@@ -6,27 +6,30 @@ import { SQL_FIELDS as CARD_SQL_FIELDS } from '../struct/card';
 const JSON_API_TYPE = 'objective-sets';
 
 const SERIALIZER_DEFAULT_OPTIONS = {
-    topLevelLinks: { self: '/objective-sets' },
-    dataLinks: {
-        'self': (record) => `/objective-sets/${record.objective_set_number}`
-    },
-
     keyForAttribute: (attribute) => _.camelCase(attribute),
     typeForAttribute: (attribute) => _.kebabCase(attribute),
+
+    topLevelLinks: {
+        self: (record) => `/objective-sets`
+    },
+
+    dataLinks: {
+        self: (record) => `/objective-sets/${record.objective_set_number}`
+    },
 
     attributes: [
         ...OBJECTIVE_SET_SQL_FIELDS,
         'matched_cards',
+        'stats',
         'cards'
     ],
 
     cards: {
         ref: 'id',
         attributes: CARD_SQL_FIELDS,
-        included: true,
+        included: false,
         includedLinks: {
-            self: (record, current) => `/cards/${current.number}`,
-            related: (record, current) => `/objective-set/${record.objective_set_number}/cards/${current.objective_set_sequence}`
+            self: (record, current) => `/cards/${current.number}`
         },
         relationshipLinks: {
             self: (record, current, parent) => `/objective-sets/${record.objective_set_number}/relationships/cards`,
@@ -36,20 +39,20 @@ const SERIALIZER_DEFAULT_OPTIONS = {
 };
 
 export default class ObjectiveSetJsonApiSerializer {
-    static serialize(cards, options = {}) {
-        cards = _.map(cards, (card) => {
-            if (card.id == null) {
-                card.id = card.objective_set_number;
-            }
-
-            return card;
-        });
-
+    static serialize(data, options = {}) {
         let serializer = new Serializer(
             JSON_API_TYPE,
-            _.merge(SERIALIZER_DEFAULT_OPTIONS, options)
+            _.mergeWith(
+                SERIALIZER_DEFAULT_OPTIONS,
+                options,
+                (objValue, srcValue) => {
+                    if (_.isArray(objValue)) {
+                        return srcValue;
+                    }
+                }
+            )
         );
 
-        return serializer.serialize(cards);
+        return serializer.serialize(data);
     }
 };
