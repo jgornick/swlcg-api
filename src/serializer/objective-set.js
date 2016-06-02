@@ -20,7 +20,7 @@ const SERIALIZER_DEFAULT_OPTIONS = {
     attributes: [
         ...OBJECTIVE_SET_SQL_FIELDS,
         'matched_cards',
-        'stats',
+        'metrics',
         'cards'
     ],
 
