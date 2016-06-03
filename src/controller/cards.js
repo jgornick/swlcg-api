@@ -7,6 +7,7 @@ import CardJsonApiSerializer from '../serializer/card';
 import ObjectiveSetJsonApiSerializer from '../serializer/objective-set';
 import { SQL_FIELDS as OBJECTIVE_SET_SQL_FIELDS } from '../struct/objective-set';
 import { SQL_FIELDS as CARD_SQL_FIELDS } from '../struct/card';
+import * as util from '../util/controller';
 
 export default function(di) {
     return di.resolve(['db'])
@@ -27,65 +28,74 @@ export default function(di) {
                             .from('cards')
                             .where('objective_set_sequence', 1)
                             .orderBy('objective_set_number', 'asc'),
-                        objectiveSetSqlFields = [],
-                        cardsSqlFields = [];
+                        objectiveSetSqlFields = OBJECTIVE_SET_SQL_FIELDS,
+                        objectiveSetAttributeFields = OBJECTIVE_SET_SQL_FIELDS,
+                        defaultCardSqlFields = _.without(
+                            CARD_SQL_FIELDS,
+                            [
+                                'objective_set_number',
+                                'objective_set_sequence',
+                                'product',
+                                'product_cycle'
+                            ]
+                        ),
+                        cardSqlFields = defaultCardSqlFields,
+                        cardAttributeFields = defaultCardSqlFields;
 
                     let parser = new JsonApiQueryParser();
                     let query = parser.parseRequest(req.url).queryData;
-
-                    query.fields = _.mapKeys(query.fields, (value, key) => _.camelCase(key));
-                    query.page.offset = query.page.offset == null ? 0 : query.page.offset;
-                    query.page.limit = query.page.limit == null ? 10 : query.page.limit;
-                    query.sort = query.sort.length == 0 ? ['number'] : query.sort;
-
-                    if (_.size(_.result(query.fields, 'cards', {}))) {
-                        cardsSqlFields = _.map(query.fields.cards, _.snakeCase);
-                    }
-
-                    if (_.size(_.result(query.fields, 'objectiveSets', {}))) {
-                        objectiveSetSqlFields = _.map(query.fields.objectiveSets, _.snakeCase);
-                    }
-
-                    if (!objectiveSetSqlFields.length) {
-                        objectiveSetSqlFields = OBJECTIVE_SET_SQL_FIELDS;
-                    }
-
-                    if (!cardsSqlFields.length) {
-                        cardsSqlFields = CARD_SQL_FIELDS;
-                    }
-
-                    _.pull(cardsSqlFields, ...[
-                        'objective_set_number',
-                        'objective_set_sequence',
-                        'product',
-                        'product_cycle'
-                    ]);
-
-                    cardsSql.select(cardsSqlFields);
-                    objectiveSetsSql.select(objectiveSetSqlFields);
 
                     if (req.query.filter != null) {
                         cardsSql.andWhere('title', 'ilike', `%${req.query.filter}%`);
                     }
 
-                    if (query.sort != null) {
-                        query.sort.forEach((field) => {
-                            const
-                                direction = /^-/.test(field) ? 'desc' : 'asc';
+                    query.fields = util.normalizeQueryFields(query.fields);
 
-                            field = _.snakeCase(field.replace(/^-/, ''));
-
-                            cardsSql.orderBy(field, direction);
-                        });
+                    if (_.size(_.result(query.fields, 'cards', []))) {
+                        cardSqlFields =
+                        cardAttributeFields = _.without(
+                            query.fields.cards,
+                            [
+                                'objective_set_number',
+                                'objective_set_sequence',
+                                'product',
+                                'product_cycle'
+                            ]
+                        );
                     }
 
-                    if (query.page.offset != null) {
-                        cardsSql.offset(query.page.offset);
+                    if (_.size(_.result(query.fields, 'objectiveSets', []))) {
+                        objectiveSetSqlFields = _.without(
+                            query.fields.objectiveSets,
+                            'metrics',
+                            'matched_cards'
+                        );
+                        objectiveSetAttributeFields = query.fields.objectiveSets;
                     }
 
-                    if (query.page.limit != null) {
-                        cardsSql.limit(query.page.limit);
-                    }
+                    objectiveSetsSql.modify(
+                        util.withFields,
+                        objectiveSetSqlFields,
+                        OBJECTIVE_SET_SQL_FIELDS
+                    );
+
+                    cardsSql.modify(
+                        util.withFields,
+                        cardSqlFields,
+                        defaultCardSqlFields
+                    );
+
+                    cardsSql.modify(
+                        util.withSort,
+                        util.normalizeSortFields(_.result(query, 'sort', []))
+                        ['objective_set_number']
+                    );
+
+                    cardsSql.modify(
+                        util.withPagination,
+                        _.result(query.page, 'offset', 0),
+                        _.result(query.page, 'limit', 10)
+                    );
 
                     cardsSql
                         .then((results) => {
@@ -106,11 +116,11 @@ export default function(di) {
                         .then((results) => {
                             res.send(CardJsonApiSerializer.serialize(results, {
                                 attributes: [
-                                    ...cardsSqlFields,
+                                    ...cardAttributeFields,
                                     'objectiveSets'
                                 ],
                                 objectiveSets: {
-                                    attributes: objectiveSetSqlFields,
+                                    attributes: objectiveSetAttributeFields,
                                     included: _.includes(query.include, 'objectiveSets')
                                 }
                             }));
@@ -149,39 +159,58 @@ export default function(di) {
                             .from('cards')
                             .where('objective_set_sequence', 1)
                             .orderBy('objective_set_number', 'asc'),
-                        objectiveSetSqlFields = [],
-                        cardsSqlFields = [];
+                        objectiveSetSqlFields = OBJECTIVE_SET_SQL_FIELDS,
+                        objectiveSetAttributeFields = OBJECTIVE_SET_SQL_FIELDS,
+                        defaultCardSqlFields = _.without(
+                            CARD_SQL_FIELDS,
+                            [
+                                'objective_set_number',
+                                'objective_set_sequence',
+                                'product',
+                                'product_cycle'
+                            ]
+                        ),
+                        cardSqlFields = defaultCardSqlFields,
+                        cardAttributeFields = defaultCardSqlFields;
 
                     let parser = new JsonApiQueryParser();
                     let query = parser.parseRequest(req.url).queryData;
 
-                    query.fields = _.mapKeys(query.fields, (value, key) => _.camelCase(key));
+                    query.fields = util.normalizeQueryFields(query.fields);
 
-                    if (_.size(_.result(query.fields, 'cards', {}))) {
-                        cardsSqlFields = _.map(query.fields.cards, _.snakeCase);
+                    if (_.size(_.result(query.fields, 'cards', []))) {
+                        cardSqlFields =
+                        cardAttributeFields = _.without(
+                            query.fields.cards,
+                            [
+                                'objective_set_number',
+                                'objective_set_sequence',
+                                'product',
+                                'product_cycle'
+                            ]
+                        );
                     }
 
-                    if (_.size(_.result(query.fields, 'objectiveSets', {}))) {
-                        objectiveSetSqlFields = _.map(query.fields.objectiveSets, _.snakeCase);
+                    if (_.size(_.result(query.fields, 'objectiveSets', []))) {
+                        objectiveSetSqlFields = _.without(
+                            query.fields.objectiveSets,
+                            'metrics',
+                            'matched_cards'
+                        );
+                        objectiveSetAttributeFields = query.fields.objectiveSets;
                     }
 
-                    if (!objectiveSetSqlFields.length) {
-                        objectiveSetSqlFields = OBJECTIVE_SET_SQL_FIELDS;
-                    }
+                    objectiveSetsSql.modify(
+                        util.withFields,
+                        objectiveSetSqlFields,
+                        OBJECTIVE_SET_SQL_FIELDS
+                    );
 
-                    if (!cardsSqlFields.length) {
-                        cardsSqlFields = CARD_SQL_FIELDS;
-                    }
-
-                    _.pull(cardsSqlFields, ...[
-                        'objective_set_number',
-                        'objective_set_sequence',
-                        'product',
-                        'product_cycle'
-                    ]);
-
-                    cardsSql.select(_.uniq(['number', ...cardsSqlFields]));
-                    objectiveSetsSql.select(_.uniq(['objective_set_number', ...objectiveSetSqlFields]));
+                    cardsSql.modify(
+                        util.withFields,
+                        cardSqlFields,
+                        defaultCardSqlFields
+                    );
 
                     cardsSql
                         .first()
@@ -204,13 +233,11 @@ export default function(di) {
                                     self: (record) => `/cards/${card.id}`
                                 },
                                 attributes: [
-                                    ...cardsSqlFields,
+                                    ...cardAttributeFields,
                                     'objectiveSets'
                                 ],
                                 objectiveSets: {
-                                    attributes: [
-                                        ...objectiveSetSqlFields
-                                    ],
+                                    attributes: objectiveSetAttributeFields,
                                     included: _.includes(query.include, 'objectiveSets')
                                 }
                             }));
@@ -236,51 +263,48 @@ export default function(di) {
                                     .where('number', req.params.number);
                             })
                             .orderBy('objective_set_number', 'asc'),
-                        objectiveSetSqlFields = [];
+                        objectiveSetSqlFields = OBJECTIVE_SET_SQL_FIELDS,
+                        objectiveSetAttributeFields = [
+                            ...OBJECTIVE_SET_SQL_FIELDS,
+                            'metrics',
+                            'mapped_cards'
+                        ];
 
                     let parser = new JsonApiQueryParser();
                     let query = parser.parseRequest(req.url).queryData;
-
-                    query.fields = _.mapKeys(query.fields, (value, key) => _.camelCase(key));
-                    query.page.offset = query.page.offset == null ? 0 : query.page.offset;
-                    query.page.limit = query.page.limit == null ? 10 : query.page.limit;
-                    query.sort = query.sort.length == 0 ? ['objective_set_number'] : query.sort;
-
-                    if (_.size(_.result(query.fields, 'objectiveSets', {}))) {
-                        objectiveSetSqlFields = _.map(query.fields.objectiveSets, _.snakeCase);
-                    }
-
-                    if (!objectiveSetSqlFields.length) {
-                        objectiveSetSqlFields = OBJECTIVE_SET_SQL_FIELDS;
-                    }
-
-                    objectiveSetsSql.select(_.uniq([
-                        'objective_set_number',
-                        ...objectiveSetSqlFields
-                    ]));
 
                     if (req.query.filter != null) {
                         objectiveSetsSql.andWhere('title', 'ilike', `%${req.query.filter}%`);
                     }
 
-                    if (query.sort != null) {
-                        query.sort.forEach((field) => {
-                            const
-                                direction = /^-/.test(field) ? 'desc' : 'asc';
+                    query.fields = util.normalizeQueryFields(query.fields);
 
-                            field = _.snakeCase(field.replace(/^-/, ''));
-
-                            objectiveSetsSql.orderBy(field, direction);
-                        });
+                    if (_.size(_.result(query.fields, 'objectiveSets', []))) {
+                        objectiveSetSqlFields = _.without(
+                            query.fields.objectiveSets,
+                            'metrics',
+                            'matched_cards'
+                        );
+                        objectiveSetAttributeFields = query.fields.objectiveSets;
                     }
 
-                    if (query.page.offset != null) {
-                        objectiveSetsSql.offset(query.page.offset);
-                    }
+                    objectiveSetsSql.modify(
+                        util.withFields,
+                        objectiveSetSqlFields,
+                        OBJECTIVE_SET_SQL_FIELDS
+                    );
 
-                    if (query.page.limit != null) {
-                        objectiveSetsSql.limit(query.page.limit);
-                    }
+                    objectiveSetsSql.modify(
+                        util.withSort,
+                        util.normalizeSortFields(_.result(query, 'sort', []))
+                        ['objective_set_number']
+                    );
+
+                    objectiveSetsSql.modify(
+                        util.withPagination,
+                        _.result(query.page, 'offset', 0),
+                        _.result(query.page, 'limit', 10)
+                    );
 
                     objectiveSetsSql
                         .then((results) => {
@@ -288,7 +312,7 @@ export default function(di) {
                                 topLevelLinks: {
                                     self: `/cards/${req.params.number}/objective-sets`
                                 },
-                                attributes: objectiveSetSqlFields
+                                attributes: objectiveSetAttributeFields
                             }));
                         })
                         .catch((error) => {
