@@ -154,7 +154,8 @@ export default function(di) {
                             .orderBy('objective_set_number', 'asc'),
                         cardsSql = db
                             .select(db.raw(`concat_ws('-', objective_set_number, objective_set_sequence) as id`))
-                            .from('cards'),
+                            .from('cards')
+                            .orderBy('objective_set_sequence', 'asc'),
                         objectiveSetSqlFields = OBJECTIVE_SET_SQL_FIELDS,
                         objectiveSetAttributeFields = [
                             ...OBJECTIVE_SET_SQL_FIELDS,
