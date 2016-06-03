@@ -32,12 +32,10 @@ export default function(di) {
                         objectiveSetAttributeFields = OBJECTIVE_SET_SQL_FIELDS,
                         defaultCardSqlFields = _.without(
                             CARD_SQL_FIELDS,
-                            [
-                                'objective_set_number',
-                                'objective_set_sequence',
-                                'product',
-                                'product_cycle'
-                            ]
+                            'objective_set_number',
+                            'objective_set_sequence',
+                            'product',
+                            'product_cycle'
                         ),
                         cardSqlFields = defaultCardSqlFields,
                         cardAttributeFields = defaultCardSqlFields;
@@ -55,12 +53,10 @@ export default function(di) {
                         cardSqlFields =
                         cardAttributeFields = _.without(
                             query.fields.cards,
-                            [
-                                'objective_set_number',
-                                'objective_set_sequence',
-                                'product',
-                                'product_cycle'
-                            ]
+                            'objective_set_number',
+                            'objective_set_sequence',
+                            'product',
+                            'product_cycle'
                         );
                     }
 
@@ -163,12 +159,10 @@ export default function(di) {
                         objectiveSetAttributeFields = OBJECTIVE_SET_SQL_FIELDS,
                         defaultCardSqlFields = _.without(
                             CARD_SQL_FIELDS,
-                            [
-                                'objective_set_number',
-                                'objective_set_sequence',
-                                'product',
-                                'product_cycle'
-                            ]
+                            'objective_set_number',
+                            'objective_set_sequence',
+                            'product',
+                            'product_cycle'
                         ),
                         cardSqlFields = defaultCardSqlFields,
                         cardAttributeFields = defaultCardSqlFields;
@@ -182,12 +176,10 @@ export default function(di) {
                         cardSqlFields =
                         cardAttributeFields = _.without(
                             query.fields.cards,
-                            [
-                                'objective_set_number',
-                                'objective_set_sequence',
-                                'product',
-                                'product_cycle'
-                            ]
+                            'objective_set_number',
+                            'objective_set_sequence',
+                            'product',
+                            'product_cycle'
                         );
                     }
 
