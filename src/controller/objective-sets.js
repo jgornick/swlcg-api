@@ -5,9 +5,10 @@ import express from 'express';
 import JsonApiQueryParser from 'jsonapi-query-parser';
 import ObjectiveSetJsonApiSerializer from '../serializer/objective-set';
 import CardJsonApiSerializer from '../serializer/card';
+import * as util from '../util/controller';
+
 import { SQL_FIELDS as OBJECTIVE_SET_SQL_FIELDS } from '../struct/objective-set';
 import { SQL_FIELDS as CARD_SQL_FIELDS } from '../struct/card';
-import * as util from '../util/controller';
 
 export default function(di) {
     return di.resolve(['db'])
@@ -22,8 +23,7 @@ export default function(di) {
                         objectiveSetMatchesSql = db
                             .select(
                                 'oc.objective_set_number',
-                                db.raw(`array_agg(distinct cc.number) as matched_cards`),
-                                db.raw(`count(oc.objective_set_number) as objective_set_count`)
+                                db.raw(`array_agg(distinct cc.number) as matched_cards`)
                             )
                             .from('cards as oc')
                             .join('cards as cc', 'cc.objective_set_number', 'oc.objective_set_number')
@@ -31,10 +31,10 @@ export default function(di) {
                             .groupBy('oc.objective_set_number'),
                         objectiveSetsSql = db
                             .select(
+                                db.raw('count(oc.objective_set_number) over() as total_count'),
                                 'oc.objective_set_number as id',
                                 'oc.objective_set_number',
-                                'mos.matched_cards',
-                                'mos.objective_set_count'
+                                'mos.matched_cards'
                             )
                             .join('cards as oc', (join) => {
                                 join
@@ -54,8 +54,11 @@ export default function(di) {
                         cardSqlFields = CARD_SQL_FIELDS,
                         cardAttributeFields = CARD_SQL_FIELDS;
 
-                    let parser = new JsonApiQueryParser();
-                    let query = parser.parseRequest(req.url).queryData;
+                    let
+                        parser = new JsonApiQueryParser(),
+                        query = parser.parseRequest(req.url).queryData,
+                        offset = +_.result(query.page, 'offset', 0),
+                        limit = +_.result(query.page, 'limit', 10);
 
                     if (req.query.filter != null) {
                         objectiveSetMatchesSql.andWhere('cc.title', 'ilike', `%${req.query.filter}%`);
@@ -102,8 +105,8 @@ export default function(di) {
 
                     objectiveSetsSql.modify(
                         util.withPagination,
-                        _.result(query.page, 'offset', 0),
-                        _.result(query.page, 'limit', 10)
+                        offset,
+                        limit
                     );
 
                     objectiveSetsSql
@@ -125,16 +128,25 @@ export default function(di) {
                             return results;
                         })
                         .then((results) => {
-                            res.send(ObjectiveSetJsonApiSerializer.serialize(results, {
-                                attributes: [
-                                    ...objectiveSetAttributeFields,
-                                    'cards'
-                                ],
-                                cards: {
-                                    attributes: cardAttributeFields,
-                                    included: _.includes(query.include, 'cards')
-                                }
-                            }));
+                            let count = +_.result(_.first(results), 'total_count', 0)
+
+                            res.send(ObjectiveSetJsonApiSerializer.serialize(
+                                results,
+                                util.withPaginationLinks(
+                                    util.calculatePaginationOffsets(offset, limit, count),
+                                    req.url,
+                                    {
+                                        attributes: [
+                                            ...objectiveSetAttributeFields,
+                                            'cards'
+                                        ],
+                                        cards: {
+                                            attributes: cardAttributeFields,
+                                            included: _.includes(query.include, 'cards')
+                                        }
+                                    }
+                                )
+                            ));
                         })
                         .catch((error) => {
                             res.status(500).send(error.message);
@@ -268,12 +280,6 @@ export default function(di) {
                         util.withSort,
                         util.normalizeSortFields(_.result(query, 'sort', [])),
                         ['objective_set_sequence']
-                    );
-
-                    cardsSql.modify(
-                        util.withPagination,
-                        _.result(query.page, 'offset', 0),
-                        _.result(query.page, 'limit', 10)
                     );
 
                     cardsSql

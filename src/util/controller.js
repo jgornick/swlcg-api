@@ -1,6 +1,8 @@
+import url from 'url';
 import _ from 'lodash';
 import when from 'when';
 import async from 'async-p';
+import qs from 'query-string';
 
 export function withPagination(query, offset = 0, limit = 10) {
     query
@@ -102,4 +104,96 @@ export function includeObjectiveSetMetrics(db, objectiveSetResults) {
         })
     ])
         .then(() => objectiveSetResults);
+}
+
+export function calculatePaginationOffsets(offset, limit, count) {
+    offset = +offset;
+    limit = +limit;
+    count = +count;
+
+    const pages = _.ceil(count / limit) || 1;
+    const page = Math.min(_.round((offset / limit) + 1 || 1), pages);
+    const last = Math.max(count - limit, 0);
+    const first = 0;
+    const next = offset + limit;
+    const prev = offset - limit;
+
+    return {
+        offset,
+        limit,
+        count,
+        pages,
+        page,
+        last,
+        first,
+        next,
+        prev
+    };
+}
+
+export function withPaginationLinks(paginationOffsets, requestUrl, jsonApiOptions = {}) {
+    let
+        {
+            offset,
+            limit,
+            count,
+            pages,
+            page,
+            last,
+            first,
+            next,
+            prev
+        } = paginationOffsets,
+        paginationQuery = qs.parse(url.parse(requestUrl).search),
+        pathName = url.parse(requestUrl).pathname;
+
+    return _.merge(jsonApiOptions, {
+        meta: {
+            pagination: {
+                count,
+                pages,
+                page,
+                offset,
+                limit,
+                first,
+                last,
+                next: next < count ? next : null,
+                prev: prev >= 0 ? prev : null
+            }
+        },
+        topLevelLinks: {
+            next: next < count
+                ? `${pathName}?${qs.stringify(
+                    _.merge(
+                        paginationQuery,
+                        { 'page[offset]': next }
+                    ),
+                    { encode: false }
+                )}`
+                : null,
+            prev: prev >= 0
+                ? `${pathName}?${qs.stringify(
+                    _.merge(
+                        paginationQuery,
+                        { 'page[offset]': prev }
+                    ),
+                    { encode: false }
+                )}`
+                : null,
+            first: `${pathName}?${qs.stringify(
+                _.merge(
+                    paginationQuery,
+                    { 'page[offset]': first }
+                ),
+                { encode: false }
+            )}`,
+            last: `${pathName}?${qs.stringify(
+                _.merge(
+                    paginationQuery,
+                    { 'page[offset]': last }
+                ),
+                { encode: false }
+            )}`
+        }
+    });
 }
