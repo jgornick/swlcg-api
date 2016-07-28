@@ -1,0 +1,15 @@
+---
+db:
+  client: pg
+  connection: postgres://swlcg:swlcg@localhost/swlcg
+
+logging:
+  default:
+    console:
+      level: debug
+      colorize: true
+      timestamp: true
+      prettyPrint: true
+
+http:
+  port: 8005
