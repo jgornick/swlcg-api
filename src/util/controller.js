@@ -60,6 +60,13 @@ export function normalizeQueryFields(fields = {}) {
     );
 }
 
+export function normalizeQueryIncludes(includes = []) {
+    return _.map(
+        includes,
+        _.camelCase
+    );
+}
+
 export function normalizeObjectiveSetMetrics(metrics) {
     return _.map(metrics, (value) => {
         value.average = +value.average;

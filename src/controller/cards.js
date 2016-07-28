@@ -52,6 +52,7 @@ export default function(di) {
                     }
 
                     query.fields = util.normalizeQueryFields(query.fields);
+                    query.include = util.normalizeQueryIncludes(query.include);
 
                     if (_.size(_.result(query.fields, 'cards', []))) {
                         cardSqlFields =
@@ -202,6 +203,7 @@ export default function(di) {
                     let query = parser.parseRequest(req.url).queryData;
 
                     query.fields = util.normalizeQueryFields(query.fields);
+                    query.include = util.normalizeQueryIncludes(query.include);
 
                     if (_.size(_.result(query.fields, 'cards', []))) {
                         cardSqlFields =
